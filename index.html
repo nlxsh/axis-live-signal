@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark light">
-<title>Axis Live Signal </title>
+<title>Axis — Live Forex Signal Engine</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -182,7 +182,6 @@
   .panel.is-entering > .card:nth-child(1) { animation-delay: 0ms; }
   .panel.is-entering > .card:nth-child(2) { animation-delay: 60ms; }
   .panel.is-entering > .card:nth-child(3) { animation-delay: 120ms; }
-  .panel.is-entering > .card:nth-child(4) { animation-delay: 180ms; }
 
   @keyframes cardEnter {
     from { opacity: 0; transform: translateY(0.7rem); }
@@ -648,14 +647,6 @@
 
   .btn-secondary:active { transform: scale(0.94); box-shadow: 1px 1px 0 var(--border); }
 
-  .fine-print {
-    margin: 0.7rem 0 0;
-    font-size: 0.66rem;
-    color: var(--muted);
-    font-weight: 500;
-    line-height: 1.45;
-  }
-
   /* ============================================================
      RESULT CARD
      ============================================================ */
@@ -921,43 +912,42 @@
     max-width: 42ch;
   }
 
-  .engine-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.75rem;
+  .warning-card {
+    border-color: var(--accent);
+    background: var(--accent-soft);
   }
 
-  @media (min-width: 600px) {
-    .engine-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-
-  .mini-card h3 {
-    margin: 0 0 0.3rem;
-    font-size: 0.88rem;
+  .warning-title {
+    color: var(--accent);
+    font-size: 0.85rem;
     font-weight: 800;
-    letter-spacing: -0.015em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
-  .mini-card p {
+  .warning-title svg {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+
+  .warning-text {
     margin: 0;
     font-size: 0.75rem;
-    color: var(--muted);
-    font-weight: 500;
-    line-height: 1.45;
+    color: var(--text);
+    font-weight: 600;
+    line-height: 1.5;
   }
 
-  .mini-card .tag {
-    display: inline-block;
-    margin-top: 0.55rem;
-    border: 2px solid var(--border);
-    border-radius: 999px;
-    padding: 0.1rem 0.45rem;
-    font-size: 0.6rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    background: var(--accent-soft);
-    color: var(--accent);
+  .copyright-card p {
+    margin: 0;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-align: center;
   }
 
   .setting-row {
@@ -1000,21 +990,6 @@
   }
 
   .switch[aria-checked="true"] .switch-knob { transform: translateX(1.35rem); }
-
-  .source-card p {
-    margin: 0;
-    font-size: 0.75rem;
-    color: var(--muted);
-    font-weight: 500;
-    line-height: 1.5;
-  }
-
-  .source-card a {
-    color: var(--accent);
-    font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
 
   /* ============================================================
      BOTTOM NAV
@@ -1209,8 +1184,6 @@
             <span id="getSignalLabel">Get signal</span>
           </button>
         </div>
-
-        <p class="fine-print">Collects live ticks until two seconds before the target candle opens, then scores the last 14 closed candles plus the running candle. No demo prices.</p>
       </section>
 
       <section class="card result-card" id="resultCard" hidden aria-live="polite" aria-label="Generated signal">
@@ -1246,6 +1219,17 @@
           </div>
         </div>
 
+        <div class="result-grid result-grid-2">
+          <div class="result-block">
+            <small>Support Zone</small>
+            <strong id="resultSupport">—</strong>
+          </div>
+          <div class="result-block">
+            <small>Resistance Zone</small>
+            <strong id="resultResistance">—</strong>
+          </div>
+        </div>
+
         <div class="confidence-block">
           <div class="confidence-head">
             <span>Confidence</span>
@@ -1273,46 +1257,8 @@
     <!-- ================= ENGINE PANEL ================= -->
     <section class="panel" id="panel-engine" role="tabpanel" aria-labelledby="tab-engine" hidden>
       <div>
-        <h2 style="margin:0 0 .35rem; font-size:clamp(1.3rem, calc(1.1rem + 1.5vw), 1.65rem); font-weight:800; letter-spacing:-.035em; color:var(--on-bg);">Inside the engine</h2>
-        <p class="engine-intro">A focused scoring model. Each signal reads the last 14 closed 1-minute candles plus the running candle, using classic indicators and comprehensive candlestick-pattern detection as confirmation.</p>
-      </div>
-
-      <div class="engine-grid">
-        <article class="card mini-card">
-          <h3>EMA 9 / 21</h3>
-          <p>Fast and slow exponential moving averages define the short-term trend. The gap between them, normalized by ATR, drives the trend label and a large share of the score.</p>
-          <span class="tag">Trend</span>
-        </article>
-
-        <article class="card mini-card">
-          <h3>SMA 20</h3>
-          <p>The simple moving average acts as a baseline bias. Price above the SMA supports upside; below supports downside. Distance is scaled by recent volatility.</p>
-          <span class="tag">Bias</span>
-        </article>
-
-        <article class="card mini-card">
-          <h3>RSI 14</h3>
-          <p>Wilder-smoothed relative strength index gauges momentum. Above 55 supports upside, below 45 supports downside. Neutral readings contribute lightly.</p>
-          <span class="tag">Momentum</span>
-        </article>
-
-        <article class="card mini-card">
-          <h3>Bollinger 20 · 2</h3>
-          <p>Price position within the bands reveals pressure. Upper half supports upside, lower half downside. Extreme touches dampen the signal to reduce chasing.</p>
-          <span class="tag">Volatility</span>
-        </article>
-
-        <article class="card mini-card">
-          <h3>30 Candlestick Patterns</h3>
-          <p>Detects engulfing, stars, harami, dojis, hammers, and multi-candle formations to confirm the direction. Acts purely as a confirmation filter.</p>
-          <span class="tag">Confirmation</span>
-        </article>
-
-        <article class="card mini-card">
-          <h3>14-bar Window</h3>
-          <p>The engine looks at the last 14 closed candles plus the running candle. Standard periods are warmed up on the fuller history so the read stays stable and clean.</p>
-          <span class="tag">Context</span>
-        </article>
+        <h2 style="margin:0 0 .35rem; font-size:clamp(1.3rem, calc(1.1rem + 1.5vw), 1.65rem); font-weight:800; letter-spacing:-.035em; color:var(--on-bg);">System Overview</h2>
+        <p class="engine-intro">Configuration and system information for the Axis proprietary engine.</p>
       </div>
 
       <section class="card settings-card" aria-label="Appearance settings">
@@ -1327,9 +1273,22 @@
         </div>
       </section>
 
-      <section class="card source-card" aria-label="Data source">
-        <div class="card-label">Data source</div>
-        <p>Live quotes and 1-minute OHLC bars come from <a href="https://biquote.io/docs/" target="_blank" rel="noopener noreferrer">biquote.io</a>, a keyless real-time market data feed sourced from MetaTrader 5. No simulated or demo prices are used anywhere in this app.</p>
+      <section class="card warning-card" aria-label="Warning">
+        <div class="warning-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          Warning
+        </div>
+        <p class="warning-text">
+          Unauthorized access, extraction, reverse engineering, or replication of the proprietary scoring model, pattern detection logic, and underlying algorithms is strictly prohibited.
+        </p>
+      </section>
+
+      <section class="card copyright-card" aria-label="Copyright">
+        <p>&copy; 2024 Axis. All rights reserved. Confidential and proprietary.</p>
       </section>
     </section>
   </main>
@@ -1378,7 +1337,7 @@
   const HISTORY_KEY = 'axis_history';
   const MAX_HISTORY = 20;
   const FETCH_TIMEOUT = 9000;
-  const ANALYSIS_WINDOW = 14;
+  const ANALYSIS_WINDOW = 15;
 
   const MARKETS = [
     { symbol: 'EURUSD', label: 'EUR/USD', name: 'Euro / US Dollar', flags: ['eu', 'us'], decimals: 5 },
@@ -1432,6 +1391,8 @@
     resultDirectionText: $('#resultDirectionText'),
     resultTrend: $('#resultTrend'),
     resultPattern: $('#resultPattern'),
+    resultSupport: $('#resultSupport'),
+    resultResistance: $('#resultResistance'),
     resultConfidence: $('#resultConfidence'),
     confidenceBar: $('#confidenceBar'),
     confidenceFill: $('#confidenceFill'),
@@ -1631,12 +1592,12 @@
   }
 
   /* ============================================================
-     PATTERN DETECTION (30 patterns)
+     PATTERN DETECTION
      ============================================================ */
   function detectPattern(bars) {
     if (!bars || bars.length < 1) return { name: 'None', tone: 0 };
     
-    const c5 = bars[bars.length - 1];
+    const c5 = bars[bars.length - 1]; // Most recent (could be running)
     const c4 = bars[bars.length - 2];
     const c3 = bars[bars.length - 3];
     const c2 = bars[bars.length - 4];
@@ -1660,6 +1621,16 @@
       }
       if (isBear(c1) && bodyRatio(c1) > 0.5 && isBull(c2) && isBull(c3) && isBull(c4) && c2.low > c1.low && c3.low > c1.low && c4.low > c1.low && c2.high < c1.high && c3.high < c1.high && c4.high < c1.high && isBear(c5) && c5.close < c1.close) {
         return { name: 'Falling Three Method', tone: -1 };
+      }
+    }
+
+    // 4-candle patterns
+    if (bars.length >= 4) {
+      if (isBull(c2) && isBull(c3) && isBull(c4) && isBear(c5) && c5.open > c4.close && c5.close < c2.open) {
+        return { name: 'Bullish 3-Line Strike', tone: 1 };
+      }
+      if (isBear(c2) && isBear(c3) && isBear(c4) && isBull(c5) && c5.open < c4.close && c5.close > c2.open) {
+        return { name: 'Bearish 3-Line Strike', tone: -1 };
       }
     }
 
@@ -1750,7 +1721,7 @@
   }
 
   /* ============================================================
-     TREND
+     TREND & MARKET FLOW (5 SEGMENTS)
      ============================================================ */
   function computeTrend(ema9, ema21, sma20, price, atr, bbWidth) {
     if (!Number.isFinite(ema9) || !Number.isFinite(ema21) || !atr || atr <= 0) {
@@ -1766,6 +1737,38 @@
     
     if (emaGap < 0.15) return { label: 'RANGING', tone: 0 };
     return { label: ema9 > ema21 ? 'UP' : 'DOWN', tone: ema9 > ema21 ? 1 : -1 };
+  }
+
+  function analyzeMarketFlow(bars) {
+    if (bars.length < 15) return { flowScore: 0, support: 0, resistance: 0 };
+
+    const last15 = bars.slice(-15);
+    const segments = [];
+    for (let i = 0; i < 15; i += 3) {
+      segments.push(last15.slice(i, i + 3));
+    }
+
+    const segHighs = segments.map(seg => Math.max(...seg.map(c => c.high)));
+    const segLows = segments.map(seg => Math.min(...seg.map(c => c.low)));
+    const segCloses = segments.map(seg => seg[seg.length - 1].close);
+
+    const resistance = Math.max(...segHighs);
+    const support = Math.min(...segLows);
+
+    let flowScore = 0;
+    // Highs making higher highs / lower highs
+    if (segHighs[4] > segHighs[3] && segHighs[3] > segHighs[2]) flowScore += 1;
+    if (segHighs[4] < segHighs[3] && segHighs[3] < segHighs[2]) flowScore -= 1;
+    
+    // Lows making higher lows / lower lows
+    if (segLows[4] > segLows[3] && segLows[3] > segLows[2]) flowScore += 1;
+    if (segLows[4] < segLows[3] && segLows[3] < segLows[2]) flowScore -= 1;
+
+    // Current partial segment vs previous completed segment
+    if (segCloses[4] > segCloses[3]) flowScore += 0.5;
+    if (segCloses[4] < segCloses[3]) flowScore -= 0.5;
+
+    return { flowScore, support, resistance };
   }
 
   /* ============================================================
@@ -1784,7 +1787,7 @@
       ? tick.mid
       : (running && Number.isFinite(running.close) ? running.close : closed[closed.length - 1].close);
 
-    /* ---- Indicators (warm-up on full history) ---- */
+    /* ---- Indicators ---- */
     const ema9Arr = emaSeries(closes, 9);
     const ema21Arr = emaSeries(closes, 21);
     const sma20Arr = smaSeries(closes, 20);
@@ -1799,24 +1802,31 @@
     const bbWidth = bb ? bb.width : 0;
 
     /* ---- ATR ---- */
-    const last14 = closed.slice(-ANALYSIS_WINDOW);
+    const last14 = closed.slice(-14);
     const atrValues = last14
       .map((bar) => Math.max(bar.high - bar.low, Math.abs(bar.high - bar.close), Math.abs(bar.low - bar.close)))
       .filter((v) => Number.isFinite(v));
     const atr = atrValues.length ? average(atrValues) : Math.abs(price) * 0.00005;
 
-    /* ---- Pattern ---- */
-    const pattern = detectPattern(closed);
+    /* ---- Pattern (Including Running Candle) ---- */
+    const patternBars = [...closed.slice(-5)];
+    if (running) patternBars.push(running);
+    const pattern = detectPattern(patternBars);
 
-    /* ---- Trend ---- */
+    /* ---- Trend & Flow ---- */
     const trend = computeTrend(ema9, ema21, sma20, price, atr, bbWidth);
+    
+    const window15 = [...closed.slice(-14)];
+    if (running) window15.push(running);
+    else window15.push(closed[closed.length - 1]); // Fallback if no running candle
+    const marketFlow = analyzeMarketFlow(window15);
 
     /* ---- Scoring ---- */
     let score = 0;
     let maxScore = 0;
     const signals = [];
 
-    // 1) EMA alignment — max ±1.5
+    // 1) EMA alignment
     maxScore += 1.5;
     let emaSignal = 0;
     if (Number.isFinite(ema9) && Number.isFinite(ema21) && atr > 0) {
@@ -1826,7 +1836,7 @@
     }
     signals.push(emaSignal);
 
-    // 2) Price vs SMA20 — max ±1.2
+    // 2) Price vs SMA20
     maxScore += 1.2;
     let smaSignal = 0;
     if (Number.isFinite(sma20) && atr > 0) {
@@ -1836,18 +1846,18 @@
     }
     signals.push(smaSignal);
 
-    // 3) RSI — max ±1.3
-    maxScore += 1.3;
+    // 3) RSI
+    maxScore += 1.0;
     let rsiSignal = 0;
     if (Number.isFinite(rsi)) {
       if (rsi > 55) rsiSignal = Math.min(1, (rsi - 50) / 30);
       else if (rsi < 45) rsiSignal = Math.max(-1, (rsi - 50) / 30);
       else rsiSignal = (rsi - 50) / 30 * 0.5;
-      score += rsiSignal * 1.3;
+      score += rsiSignal * 1.0;
     }
     signals.push(rsiSignal);
 
-    // 4) Bollinger position — max ±1.0
+    // 4) Bollinger Bands
     maxScore += 1.0;
     let bbSignal = 0;
     if (bb && bb.upper > bb.lower) {
@@ -1859,12 +1869,31 @@
     }
     signals.push(bbSignal);
 
-    // 5) Pattern — max ±0.5 (Confirmation only)
-    maxScore += 0.5;
-    score += pattern.tone * 0.5;
+    // 5) Market Flow (5 Segments)
+    maxScore += 2.5;
+    let flowSignal = 0;
+    if (marketFlow.flowScore > 0) flowSignal = Math.min(1, marketFlow.flowScore / 2.5);
+    if (marketFlow.flowScore < 0) flowSignal = Math.max(-1, marketFlow.flowScore / 2.5);
+    score += flowSignal * 2.5;
+    signals.push(flowSignal);
+
+    // 6) Support / Resistance Zones
+    maxScore += 1.5;
+    let levelSignal = 0;
+    if (marketFlow.resistance && Math.abs(price - marketFlow.resistance) < atr * 0.5) {
+      levelSignal = -1; // Near resistance
+    } else if (marketFlow.support && Math.abs(price - marketFlow.support) < atr * 0.5) {
+      levelSignal = 1; // Near support
+    }
+    score += levelSignal * 1.5;
+    signals.push(levelSignal);
+
+    // 7) Pattern Confirmation
+    maxScore += 1.0;
+    score += pattern.tone * 1.0;
     signals.push(pattern.tone);
 
-    // 6) Running candle — max ±0.8
+    // 8) Running candle action
     maxScore += 0.8;
     let runningSignal = 0;
     if (running) {
@@ -1878,12 +1907,10 @@
     const direction = raw >= 0 ? 'UP' : 'DOWN';
     const agreeDir = direction === 'UP' ? 1 : -1;
     
-    // Agreement metric
     const active = signals.filter((s) => Math.abs(s) > 0.1);
     const agreeCount = active.filter((s) => s * agreeDir > 0).length;
     const agreement = active.length > 0 ? agreeCount / active.length : 0.5;
     
-    // Pattern confirmation boost
     let patternBoost = 0;
     if (pattern.tone * agreeDir > 0) patternBoost = 5;
     else if (pattern.tone * agreeDir < 0) patternBoost = -5;
@@ -1896,6 +1923,8 @@
       trendTone: trend.tone,
       pattern: pattern.name,
       patternTone: pattern.tone,
+      support: marketFlow.support,
+      resistance: marketFlow.resistance,
       confidence,
       raw
     };
@@ -2025,6 +2054,10 @@
     el.resultTrend.dataset.tone = String(result.trendTone);
     el.resultPattern.textContent = result.pattern;
     el.resultPattern.dataset.tone = String(result.patternTone);
+    
+    el.resultSupport.textContent = fmtPrice(result.support, market);
+    el.resultResistance.textContent = fmtPrice(result.resistance, market);
+    
     el.resultConfidence.textContent = `${result.confidence}%`;
     el.confidenceBar.setAttribute('aria-valuenow', String(result.confidence));
 
@@ -2151,11 +2184,11 @@
     el.resultCard.hidden = true;
     el.collectBox.hidden = false;
     el.getSignalBtn.disabled = true;
-    el.getSignalLabel.textContent = 'Collecting live ticks';
-    el.phasePill.textContent = 'Collecting';
+    el.getSignalLabel.textContent = 'Analyzing Market';
+    el.phasePill.textContent = 'Analyzing';
     el.phasePill.classList.remove('done');
     el.phasePill.classList.add('active');
-    el.terminalCopy.textContent = 'Collecting live ticks until two seconds before the target candle opens.';
+    el.terminalCopy.textContent = 'Analyzing live market microstructure and liquidity flow...';
     el.windowLabel.textContent = `${fmtClock(state.collectStart)} → ${fmtClock(collectEnd)}`;
     el.tape.innerHTML = '';
     el.progressFill.style.width = '0%';
@@ -2213,7 +2246,7 @@
   async function finishSignal() {
     if (state.phase === 'done') return;
     state.phase = 'finishing';
-    el.phasePill.textContent = 'Scoring';
+    el.phasePill.textContent = 'Thinking';
     el.countdown.textContent = '00:00';
     el.progressFill.style.width = '100%';
 
