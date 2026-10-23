@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark light">
-<title>Axis Live Signal </title>
+<title>Axis Live Signal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1594,14 +1594,8 @@
   /* ============================================================
      PATTERN DETECTION
      ============================================================ */
-  function detectPattern(bars) {
-    if (!bars || bars.length < 1) return { name: 'None', tone: 0 };
-    
-    const c5 = bars[bars.length - 1]; // Most recent (could be running)
-    const c4 = bars[bars.length - 2];
-    const c3 = bars[bars.length - 3];
-    const c2 = bars[bars.length - 4];
-    const c1 = bars[bars.length - 5];
+  function detectPattern(current, prev1, prev2, prev3) {
+    if (!current) return { name: 'None', tone: 0 };
     
     const isBull = (c) => c && c.close > c.open;
     const isBear = (c) => c && c.close < c.open;
@@ -1611,117 +1605,68 @@
     const lowerWick = (c) => c ? Math.min(c.close, c.open) - c.low : 0;
     
     const bodyRatio = (c) => range(c) === 0 ? 0 : body(c) / range(c);
-    const isDoji = (c) => bodyRatio(c) < 0.1;
-    const isMarubozu = (c) => bodyRatio(c) > 0.9;
 
-    // 5-candle patterns
-    if (bars.length >= 5) {
-      if (isBull(c1) && bodyRatio(c1) > 0.5 && isBear(c2) && isBear(c3) && isBear(c4) && c2.high < c1.high && c3.high < c1.high && c4.high < c1.high && c2.low > c1.low && c3.low > c1.low && c4.low > c1.low && isBull(c5) && c5.close > c1.close) {
-        return { name: 'Rising Three Method', tone: 1 };
-      }
-      if (isBear(c1) && bodyRatio(c1) > 0.5 && isBull(c2) && isBull(c3) && isBull(c4) && c2.low > c1.low && c3.low > c1.low && c4.low > c1.low && c2.high < c1.high && c3.high < c1.high && c4.high < c1.high && isBear(c5) && c5.close < c1.close) {
-        return { name: 'Falling Three Method', tone: -1 };
-      }
-    }
-
-    // 4-candle patterns
-    if (bars.length >= 4) {
-      if (isBull(c2) && isBull(c3) && isBull(c4) && isBear(c5) && c5.open > c4.close && c5.close < c2.open) {
-        return { name: 'Bullish 3-Line Strike', tone: 1 };
-      }
-      if (isBear(c2) && isBear(c3) && isBear(c4) && isBull(c5) && c5.open < c4.close && c5.close > c2.open) {
-        return { name: 'Bearish 3-Line Strike', tone: -1 };
-      }
-    }
-
-    // 3-candle patterns
-    if (bars.length >= 3) {
-      if (isBear(c3) && bodyRatio(c3) > 0.5 && isDoji(c4) && isBull(c5) && c5.close > (c3.open + c3.close)/2) {
-        return { name: 'Morning Star', tone: 1 };
-      }
-      if (isBull(c3) && bodyRatio(c3) > 0.5 && isDoji(c4) && isBear(c5) && c5.close < (c3.open + c3.close)/2) {
-        return { name: 'Evening Star', tone: -1 };
-      }
-      if (isBull(c3) && isBull(c4) && isBull(c5) && c4.close > c3.close && c5.close > c4.close && bodyRatio(c3) > 0.5 && bodyRatio(c4) > 0.5 && bodyRatio(c5) > 0.5) {
+    // --- 3-Candle Patterns (last 2 closed + current running) ---
+    if (prev1 && prev2) {
+      if (isBull(prev2) && isBull(prev1) && isBull(current) && prev1.close > prev2.close && current.close > prev1.close && bodyRatio(prev2) > 0.5 && bodyRatio(prev1) > 0.5 && bodyRatio(current) > 0.5) {
         return { name: 'Three White Soldiers', tone: 1 };
       }
-      if (isBear(c3) && isBear(c4) && isBear(c5) && c4.close < c3.close && c5.close < c4.close && bodyRatio(c3) > 0.5 && bodyRatio(c4) > 0.5 && bodyRatio(c5) > 0.5) {
+      if (isBear(prev2) && isBear(prev1) && isBear(current) && prev1.close < prev2.close && current.close < prev1.close && bodyRatio(prev2) > 0.5 && bodyRatio(prev1) > 0.5 && bodyRatio(current) > 0.5) {
         return { name: 'Three Black Crows', tone: -1 };
       }
-      if (isBear(c3) && isBull(c4) && c4.close > c3.open && c4.open < c3.close && isBull(c5) && c5.close > c4.close) {
+      if (isBear(prev2) && bodyRatio(prev2) > 0.5 && bodyRatio(prev1) < 0.3 && isBull(current) && current.close > (prev2.open + prev2.close) / 2) {
+        return { name: 'Morning Star', tone: 1 };
+      }
+      if (isBull(prev2) && bodyRatio(prev2) > 0.5 && bodyRatio(prev1) < 0.3 && isBear(current) && current.close < (prev2.open + prev2.close) / 2) {
+        return { name: 'Evening Star', tone: -1 };
+      }
+      if (isBear(prev2) && isBull(prev1) && prev1.close > prev2.open && prev1.open < prev2.close && isBull(current) && current.close > prev1.close) {
         return { name: 'Three Outside Up', tone: 1 };
       }
-      if (isBull(c3) && isBear(c4) && c4.close < c3.open && c4.open > c3.close && isBear(c5) && c5.close < c4.close) {
+      if (isBull(prev2) && isBear(prev1) && prev1.close < prev2.open && prev1.open > prev2.close && isBear(current) && current.close < prev1.close) {
         return { name: 'Three Outside Down', tone: -1 };
       }
-      if (isBear(c3) && isBull(c4) && c4.close < c3.open && c4.open > c3.close && isBull(c5) && c5.close > c3.open) {
+      if (isBear(prev2) && isBull(prev1) && prev1.close < prev2.open && prev1.open > prev2.close && isBull(current) && current.close > prev2.open) {
         return { name: 'Three Inside Up', tone: 1 };
       }
-      if (isBull(c3) && isBear(c4) && c4.close > c3.open && c4.open < c3.close && isBear(c5) && c5.close < c3.open) {
+      if (isBull(prev2) && isBear(prev1) && prev1.close > prev2.open && prev1.open < prev2.close && isBear(current) && current.close < prev2.open) {
         return { name: 'Three Inside Down', tone: -1 };
       }
     }
 
-    // 2-candle patterns
-    if (bars.length >= 2) {
-      if (isBear(c4) && isBull(c5) && c5.close > c4.open && c5.open < c4.close) {
-        return { name: 'Bullish Engulfing', tone: 1 };
+    // --- 1-Candle Patterns ---
+    if (isBull(current)) {
+      if (bodyRatio(current) > 0.9) return { name: 'Bullish Marubozu', tone: 1 };
+      if (bodyRatio(current) < 0.15) {
+        if (lowerWick(current) > range(current) * 0.7) return { name: 'Dragonfly Doji', tone: 1 };
+        if (upperWick(current) > range(current) * 0.3 && lowerWick(current) > range(current) * 0.3) return { name: 'Long Legged Doji', tone: 0 };
       }
-      if (isBull(c4) && isBear(c5) && c5.close < c4.open && c5.open > c4.close) {
-        return { name: 'Bearish Engulfing', tone: -1 };
-      }
-      if (isBear(c4) && bodyRatio(c4) > 0.5 && isBull(c5) && c5.open < c4.low && c5.close > (c4.open + c4.close)/2) {
-        return { name: 'Piercing Pattern', tone: 1 };
-      }
-      if (isBull(c4) && bodyRatio(c4) > 0.5 && isBear(c5) && c5.open > c4.high && c5.close < (c4.open + c4.close)/2) {
-        return { name: 'Dark Cloud Cover', tone: -1 };
-      }
-      if (isBear(c4) && isBull(c5) && Math.abs(c4.low - c5.low) < (range(c4) * 0.1)) {
-        return { name: 'Tweezer Bottom', tone: 1 };
-      }
-      if (isBull(c4) && isBear(c5) && Math.abs(c4.high - c5.high) < (range(c4) * 0.1)) {
-        return { name: 'Tweezer Top', tone: -1 };
-      }
-      if (isBear(c4) && bodyRatio(c4) > 0.5 && isBull(c5) && c5.open > c4.close && c5.close < c4.open) {
-        return { name: 'Bullish Harami', tone: 1 };
-      }
-      if (isBull(c4) && bodyRatio(c4) > 0.5 && isBear(c5) && c5.open < c4.close && c5.close > c4.open) {
-        return { name: 'Bearish Harami', tone: -1 };
-      }
+      if (lowerWick(current) > range(current) * 0.6 && upperWick(current) < range(current) * 0.2 && bodyRatio(current) < 0.4) return { name: 'Hammer', tone: 1 };
+      if (upperWick(current) > range(current) * 0.6 && lowerWick(current) < range(current) * 0.2 && bodyRatio(current) < 0.4) return { name: 'Inverted Hammer', tone: 1 };
     }
 
-    // 1-candle patterns
-    if (bars.length >= 1) {
-      if (isMarubozu(c5)) {
-        return { name: isBull(c5) ? 'Bullish Marubozu' : 'Bearish Marubozu', tone: isBull(c5) ? 1 : -1 };
+    if (isBear(current)) {
+      if (bodyRatio(current) > 0.9) return { name: 'Bearish Marubozu', tone: -1 };
+      if (bodyRatio(current) < 0.15) {
+        if (upperWick(current) > range(current) * 0.7) return { name: 'Gravestone Doji', tone: -1 };
       }
-      if (isDoji(c5)) {
-        if (upperWick(c5) > range(c5) * 0.7) return { name: 'Gravestone Doji', tone: -1 };
-        if (lowerWick(c5) > range(c5) * 0.7) return { name: 'Dragonfly Doji', tone: 1 };
-        if (upperWick(c5) > range(c5) * 0.3 && lowerWick(c5) > range(c5) * 0.3) {
-          return { name: isBull(c5) ? 'Bullish Long Legged Doji' : 'Bearish Long Legged Doji', tone: isBull(c5) ? 1 : -1 };
-        }
-      }
-      if (bodyRatio(c5) < 0.35) {
-        const lower = lowerWick(c5);
-        const upper = upperWick(c5);
-        if (lower > range(c5) * 0.6) {
-          return { name: isBull(c5) ? 'Hammer' : 'Hanging Man', tone: isBull(c5) ? 1 : -1 };
-        }
-        if (upper > range(c5) * 0.6) {
-          return { name: isBull(c5) ? 'Inverted Hammer' : 'Shooting Star', tone: isBull(c5) ? 1 : -1 };
-        }
-        if (upper > range(c5) * 0.25 && lower > range(c5) * 0.25) {
-          return { name: isBull(c5) ? 'Bullish Spinning Top' : 'Bearish Spinning Top', tone: isBull(c5) ? 1 : -1 };
-        }
-      }
+      if (upperWick(current) > range(current) * 0.6 && lowerWick(current) < range(current) * 0.2 && bodyRatio(current) < 0.4) return { name: 'Shooting Star', tone: -1 };
+      if (lowerWick(current) > range(current) * 0.6 && upperWick(current) < range(current) * 0.2 && bodyRatio(current) < 0.4) return { name: 'Hanging Man', tone: -1 };
+    }
+
+    // --- 2-Candle Patterns ---
+    if (prev1) {
+      if (isBear(prev1) && isBull(current) && current.close > prev1.open && current.open < prev1.close) return { name: 'Bullish Engulfing', tone: 1 };
+      if (isBull(prev1) && isBear(current) && current.close < prev1.open && current.open > prev1.close) return { name: 'Bearish Engulfing', tone: -1 };
+      if (isBear(prev1) && isBull(current) && Math.abs(prev1.low - current.low) < (range(prev1) * 0.1)) return { name: 'Tweezer Bottom', tone: 1 };
+      if (isBull(prev1) && isBear(current) && Math.abs(prev1.high - current.high) < (range(prev1) * 0.1)) return { name: 'Tweezer Top', tone: -1 };
     }
 
     return { name: 'None', tone: 0 };
   }
 
   /* ============================================================
-     TREND & MARKET FLOW (5 SEGMENTS)
+     TREND & BACKTEST (MARTINGALE LOGIC)
      ============================================================ */
   function computeTrend(ema9, ema21, sma20, price, atr, bbWidth) {
     if (!Number.isFinite(ema9) || !Number.isFinite(ema21) || !atr || atr <= 0) {
@@ -1739,36 +1684,74 @@
     return { label: ema9 > ema21 ? 'UP' : 'DOWN', tone: ema9 > ema21 ? 1 : -1 };
   }
 
-  function analyzeMarketFlow(bars) {
-    if (bars.length < 15) return { flowScore: 0, support: 0, resistance: 0 };
+  function performBacktestAndMartingale(bars) {
+    if (bars.length < 15) return { respectScore: 0, trendSignal: 0, martingaleSignal: 0, support: 0, resistance: 0 };
+    
+    const seg1 = bars.slice(0, 5);
+    const seg2 = bars.slice(5, 10);
+    const seg3 = bars.slice(10, 15);
 
-    const last15 = bars.slice(-15);
-    const segments = [];
-    for (let i = 0; i < 15; i += 3) {
-      segments.push(last15.slice(i, i + 3));
+    const resistance = Math.max(...bars.map(c => c.high));
+    const support = Math.min(...bars.map(c => c.low));
+
+    let respectScore = 0;
+    
+    const analyze4 = (b) => {
+      if (b.length < 4) return { dir: 0, high: 0, low: 0 };
+      const open = b[0].open;
+      const close = b[3].close;
+      const dir = Math.sign(close - open);
+      const high = Math.max(...b.map(c => c.high));
+      const low = Math.min(...b.map(c => c.low));
+      return { dir, high, low };
+    };
+
+    // 1. Backtest Seg1
+    let p1 = analyze4(seg1.slice(0, 4));
+    if (p1.dir !== 0) {
+      let v1 = seg1[4];
+      let respected = (p1.dir > 0) ? (v1.close > seg1[3].close || v1.high > p1.high) : (v1.close < seg1[3].close || v1.low < p1.low);
+      if (!respected) {
+        let v2 = seg2[0]; // Check 6th candle (start of seg2)
+        respected = (p1.dir > 0) ? (v2.close > seg1[3].close || v2.high > p1.high) : (v2.close < seg1[3].close || v2.low < p1.low);
+      }
+      respectScore += respected ? 1 : -1;
     }
 
-    const segHighs = segments.map(seg => Math.max(...seg.map(c => c.high)));
-    const segLows = segments.map(seg => Math.min(...seg.map(c => c.low)));
-    const segCloses = segments.map(seg => seg[seg.length - 1].close);
+    // 2. Backtest Seg2
+    let p2 = analyze4(seg2.slice(0, 4));
+    if (p2.dir !== 0) {
+      let v1 = seg2[4];
+      let respected = (p2.dir > 0) ? (v1.close > seg2[3].close || v1.high > p2.high) : (v1.close < seg2[3].close || v1.low < p2.low);
+      if (!respected) {
+        let v2 = seg3[0]; // Check 6th candle (start of seg3)
+        respected = (p2.dir > 0) ? (v2.close > seg2[3].close || v2.high > p2.high) : (v2.close < seg2[3].close || v2.low < p2.low);
+      }
+      respectScore += respected ? 1 : -1;
+    }
 
-    const resistance = Math.max(...segHighs);
-    const support = Math.min(...segLows);
-
-    let flowScore = 0;
-    // Highs making higher highs / lower highs
-    if (segHighs[4] > segHighs[3] && segHighs[3] > segHighs[2]) flowScore += 1;
-    if (segHighs[4] < segHighs[3] && segHighs[3] < segHighs[2]) flowScore -= 1;
+    // 3. Current Segment (Predicting next candle)
+    let p3 = analyze4(seg3.slice(0, 4));
+    let trendSignal = p3.dir;
+    let martingaleSignal = 0;
     
-    // Lows making higher lows / lower lows
-    if (segLows[4] > segLows[3] && segLows[3] > segLows[2]) flowScore += 1;
-    if (segLows[4] < segLows[3] && segLows[3] < segLows[2]) flowScore -= 1;
+    if (trendSignal !== 0) {
+      let running = seg3[4]; // 5th candle (currently forming)
+      
+      // Did the running candle respect the 4-candle trend?
+      let respected5th = (trendSignal > 0) ? (running.close > seg3[3].close || running.high > p3.high) : (running.close < seg3[3].close || running.low < p3.low);
+      
+      if (respected5th) {
+        respectScore += 1;
+      } else {
+        respectScore -= 1;
+        // MARTINGALE LOGIC: If 5th failed, 6th (next candle) will likely respect the original trend
+        if (trendSignal > 0 && running.close < running.open) martingaleSignal = 1;
+        if (trendSignal < 0 && running.close > running.open) martingaleSignal = -1;
+      }
+    }
 
-    // Current partial segment vs previous completed segment
-    if (segCloses[4] > segCloses[3]) flowScore += 0.5;
-    if (segCloses[4] < segCloses[3]) flowScore -= 0.5;
-
-    return { flowScore, support, resistance };
+    return { respectScore, trendSignal, martingaleSignal, support, resistance };
   }
 
   /* ============================================================
@@ -1808,45 +1791,48 @@
       .filter((v) => Number.isFinite(v));
     const atr = atrValues.length ? average(atrValues) : Math.abs(price) * 0.00005;
 
-    /* ---- Pattern (Including Running Candle) ---- */
-    const patternBars = [...closed.slice(-5)];
-    if (running) patternBars.push(running);
-    const pattern = detectPattern(patternBars);
+    /* ---- Pattern Detection ---- */
+    const currentCandle = running || closed[closed.length - 1];
+    const prev1 = closed.length >= 1 ? closed[closed.length - 1] : null;
+    const prev2 = closed.length >= 2 ? closed[closed.length - 2] : null;
+    const prev3 = closed.length >= 3 ? closed[closed.length - 3] : null;
+    const pattern = detectPattern(currentCandle, prev1, prev2, prev3);
 
-    /* ---- Trend & Flow ---- */
+    /* ---- Trend & Backtest Flow ---- */
     const trend = computeTrend(ema9, ema21, sma20, price, atr, bbWidth);
     
     const window15 = [...closed.slice(-14)];
     if (running) window15.push(running);
-    else window15.push(closed[closed.length - 1]); // Fallback if no running candle
-    const marketFlow = analyzeMarketFlow(window15);
+    else window15.push(closed[closed.length - 1]);
+    
+    const backtest = performBacktestAndMartingale(window15);
 
     /* ---- Scoring ---- */
     let score = 0;
     let maxScore = 0;
     const signals = [];
 
-    // 1) EMA alignment
-    maxScore += 1.5;
+    // 1) EMA alignment (Weight: 1.0)
+    maxScore += 1.0;
     let emaSignal = 0;
     if (Number.isFinite(ema9) && Number.isFinite(ema21) && atr > 0) {
       const diff = (ema9 - ema21) / atr;
       emaSignal = Math.max(-1, Math.min(1, diff));
-      score += emaSignal * 1.5;
+      score += emaSignal * 1.0;
     }
     signals.push(emaSignal);
 
-    // 2) Price vs SMA20
-    maxScore += 1.2;
+    // 2) Price vs SMA20 (Weight: 1.0)
+    maxScore += 1.0;
     let smaSignal = 0;
     if (Number.isFinite(sma20) && atr > 0) {
       const diff = (price - sma20) / atr;
       smaSignal = Math.max(-1, Math.min(1, diff));
-      score += smaSignal * 1.2;
+      score += smaSignal * 1.0;
     }
     signals.push(smaSignal);
 
-    // 3) RSI
+    // 3) RSI (Weight: 1.0)
     maxScore += 1.0;
     let rsiSignal = 0;
     if (Number.isFinite(rsi)) {
@@ -1857,7 +1843,7 @@
     }
     signals.push(rsiSignal);
 
-    // 4) Bollinger Bands
+    // 4) Bollinger Bands (Weight: 1.0)
     maxScore += 1.0;
     let bbSignal = 0;
     if (bb && bb.upper > bb.lower) {
@@ -1869,36 +1855,45 @@
     }
     signals.push(bbSignal);
 
-    // 5) Market Flow (5 Segments)
-    maxScore += 2.5;
-    let flowSignal = 0;
-    if (marketFlow.flowScore > 0) flowSignal = Math.min(1, marketFlow.flowScore / 2.5);
-    if (marketFlow.flowScore < 0) flowSignal = Math.max(-1, marketFlow.flowScore / 2.5);
-    score += flowSignal * 2.5;
-    signals.push(flowSignal);
+    // 5) Backtest Structure Respect (Weight: 2.0)
+    maxScore += 2.0;
+    let backtestSignal = 0;
+    if (backtest.trendSignal !== 0) backtestSignal = backtest.trendSignal * 0.5;
+    if (backtest.respectScore > 0) backtestSignal += 0.5;
+    if (backtest.respectScore < 0) backtestSignal -= 0.5;
+    score += backtestSignal * 2.0;
+    signals.push(backtestSignal);
 
-    // 6) Support / Resistance Zones
+    // 6) Martingale Signal (Weight: 1.5)
+    maxScore += 1.5;
+    score += backtest.martingaleSignal * 1.5;
+    signals.push(backtest.martingaleSignal);
+
+    // 7) Support / Resistance Breakout (Weight: 1.5)
     maxScore += 1.5;
     let levelSignal = 0;
-    if (marketFlow.resistance && Math.abs(price - marketFlow.resistance) < atr * 0.5) {
-      levelSignal = -1; // Near resistance
-    } else if (marketFlow.support && Math.abs(price - marketFlow.support) < atr * 0.5) {
-      levelSignal = 1; // Near support
+    const isConsolidating = (backtest.respectScore > 0 && Math.abs(price - backtest.resistance) < atr * 0.2);
+    if (isConsolidating) {
+      if (price > backtest.resistance) levelSignal = 1;
+      else if (price < backtest.support) levelSignal = -1;
+    } else {
+      if (Math.abs(price - backtest.resistance) < atr * 0.3) levelSignal = -1;
+      else if (Math.abs(price - backtest.support) < atr * 0.3) levelSignal = 1;
     }
     score += levelSignal * 1.5;
     signals.push(levelSignal);
 
-    // 7) Pattern Confirmation
-    maxScore += 1.0;
-    score += pattern.tone * 1.0;
+    // 8) Candlestick Pattern (HIGHEST Weight: 2.5)
+    maxScore += 2.5;
+    score += pattern.tone * 2.5;
     signals.push(pattern.tone);
 
-    // 8) Running candle action
-    maxScore += 0.8;
+    // 9) Running candle action (Weight: 0.5)
+    maxScore += 0.5;
     let runningSignal = 0;
     if (running) {
       runningSignal = Math.sign(running.close - running.open);
-      score += runningSignal * 0.8;
+      score += runningSignal * 0.5;
     }
     signals.push(runningSignal);
 
@@ -1911,11 +1906,23 @@
     const agreeCount = active.filter((s) => s * agreeDir > 0).length;
     const agreement = active.length > 0 ? agreeCount / active.length : 0.5;
     
+    // Pattern Dominance Logic
     let patternBoost = 0;
-    if (pattern.tone * agreeDir > 0) patternBoost = 5;
-    else if (pattern.tone * agreeDir < 0) patternBoost = -5;
+    if (pattern.tone !== 0) {
+      if (pattern.tone === agreeDir) {
+        patternBoost = 7;
+      } else {
+        patternBoost = -7;
+      }
+    }
 
-    const confidence = Math.max(51, Math.min(96, Math.round(51 + Math.abs(raw) * 30 + agreement * 15 + patternBoost)));
+    // Martingale Boost
+    let martingaleBoost = 0;
+    if (backtest.martingaleSignal !== 0 && direction === (backtest.martingaleSignal === 1 ? 'UP' : 'DOWN')) {
+      martingaleBoost = 7; // High confidence in the 6th candle bounce
+    }
+
+    const confidence = Math.max(51, Math.min(96, Math.round(51 + Math.abs(raw) * 30 + agreement * 15 + patternBoost + martingaleBoost)));
 
     return {
       direction,
@@ -1923,8 +1930,8 @@
       trendTone: trend.tone,
       pattern: pattern.name,
       patternTone: pattern.tone,
-      support: marketFlow.support,
-      resistance: marketFlow.resistance,
+      support: backtest.support,
+      resistance: backtest.resistance,
       confidence,
       raw
     };
@@ -2099,7 +2106,7 @@
   }
 
   /* ============================================================
-     MARKET LOADING
+     MARKET LOADING & RESET
      ============================================================ */
   function resetForMarket() {
     if (state.timer) clearInterval(state.timer);
@@ -2168,6 +2175,12 @@
       showToast('Market is closed. The signal will use the last available session data.');
     }
 
+    // Clear old data completely
+    state.ticks = [];
+    state.bars = [];
+    state.result = null;
+    state.fetchLock = false;
+
     const now = Date.now();
     let target = new Date(Math.ceil(now / 60000) * 60000);
     if (target.getTime() - now < 15000) target = new Date(target.getTime() + 60000);
@@ -2177,9 +2190,6 @@
     state.target = target;
     state.collectStart = new Date(now);
     state.collectEnd = collectEnd;
-    state.ticks = [];
-    state.result = null;
-    state.fetchLock = false;
 
     el.resultCard.hidden = true;
     el.collectBox.hidden = false;
